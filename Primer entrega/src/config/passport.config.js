@@ -2,13 +2,43 @@ import passport from "passport";
 import local from "passport-local";
 import jwt from "passport-jwt";
 import { UserModel } from "../models/user.model.js";
-import { isValidPassword } from "../utils/bcrypt.js";
+import { createHash, isValidPassword } from "../utils/bcrypt.js";
 
 const LocalStrategy = local.Strategy;
 const JWTStrategy = jwt.Strategy;
 const ExtractJWT = jwt.ExtractJwt;
 
 export const initializePassport = () => {
+
+  passport.use(
+    "register",
+    new LocalStrategy(
+      {
+        passReqToCallback: true,
+        usernameField: "email"
+      },
+      async (req, email, password, done) => {
+        try {
+          const { first_name, last_name, age } = req.body;
+
+          const exists = await UserModel.findOne({ email });
+          if (exists) return done(null, false);
+
+          const user = await UserModel.create({
+            first_name,
+            last_name,
+            email,
+            age,
+            password: createHash(password)
+          });
+
+          return done(null, user);
+        } catch (error) {
+          return done(error);
+        }
+      }
+    )
+  );
 
   passport.use(
     "login",
@@ -39,8 +69,7 @@ export const initializePassport = () => {
         secretOrKey: "coderSecret"
       },
       async (jwt_payload, done) => {
-        const { password, ...userWithoutPassword } = jwt_payload.user;
-        return done(null, userWithoutPassword);
+        return done(null, jwt_payload.user);
       }
     )
   );

@@ -9,7 +9,13 @@ router.post(
   passport.authenticate("login", { session: false }),
   (req, res) => {
     const token = jwt.sign(
-      { user: req.user },
+      {
+        user: {
+          _id: req.user._id,
+          email: req.user.email,
+          role: req.user.role
+        }
+      },
       "coderSecret",
       { expiresIn: "1h" }
     );
